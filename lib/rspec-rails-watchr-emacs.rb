@@ -17,7 +17,9 @@ class SpecWatchr
       puts "=== running: #{cmd} ".ljust(terminal_columns, '=').cyan
       results = `#{cmd}`
       success = $?.success?
-      puts "    " + results.split("\n")[@error_count_line].strip.send(success ? :green : :red)
+      unless @custom_extract_summary_proc
+        puts "    " + results.split("\n")[@error_count_line].strip.send(success ? :green : :red)
+      end
       puts "===".ljust(terminal_columns, '=').cyan
       # {:success => success, :results => message}
       results
