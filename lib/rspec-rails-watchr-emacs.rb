@@ -1,6 +1,6 @@
 # coding: utf-8)
 
-require 'rspec-rails-watchr/version'
+require 'rspec-rails-watchr-emacs/version'
 require 'term/ansicolor'
 
 class SpecWatchr
@@ -148,16 +148,6 @@ class SpecWatchr
         
 
   module Specs
-    def notify message
-      Thread.new do
-        begin
-          require 'notify'
-          Notify.notify 'RSpec Result:', message
-        rescue
-          nil
-        end
-      end
-    end
 
     def rspec_command
       @rspec_command ||= File.exist?('./.rspec') ? 'rspec' : 'spec'

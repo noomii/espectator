@@ -1,18 +1,16 @@
 # -*- encoding: utf-8 -*-
 $:.push File.expand_path("../lib", __FILE__)
-require "rspec-rails-watchr/version"
+require "rspec-rails-watchr-emacs/version"
 
 Gem::Specification.new do |s|
-  s.name        = 'rspec-rails-watchr'
+  s.name        = 'rspec-rails-watchr-emacs'
   s.version     = Rspec::Rails::Watchr::VERSION
-  s.authors     = %w[Elia Schito]
-  s.email       = %w[perlelia@gmail.com]
-  s.homepage    = ''
-  s.summary     = %q{Watches specs for a Rails (2 or 3) project}
-  s.description = %q{Watches specs for a Rails (2 or 3) project}
+  s.authors     = %w[Alessandro Piras]
+  s.email       = %w[laynor@gmail.com]
+  s.homepage    = 'https://github.com/laynor/spectator'
+  s.summary     = %q{Watches specs for a Rails (2 or 3) project - notifications via Emacs enotify}
+  s.description = %q{Watches specs for a Rails (2 or 3) project - notifications via Emacs enotify. Fork of rspec-rails-watchr (spectator)}
   s.license     = 'MIT'
-
-  s.rubyforge_project = 'rspec-rails-watchr'
 
   s.files         = `git ls-files`.split("\n")
   s.test_files    = `git ls-files -- {test,spec,features}/*`.split("\n")
