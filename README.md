@@ -19,6 +19,14 @@ test results that do look nice on emacs.
 You need to install [Enotify][enotify] first. Please refer to its
 README for this step.
 
+Copy the emacs/enotify-espectator.el file in a directory in your
+load-path and add this line after the enotify configuration in your
+.emacs:
+
+----
+	(require 'enotify-espectator)
+----
+
 Note that enotify uses the TCP port 5000 to listen to notification
 messages. If you specified a different port, refer to the ``Advanced''
 section of this document to see how to specify various ESpectator
@@ -33,14 +41,16 @@ In your specs.watchr file just add:
 	@specs_watchr ||= Rspec::Rails::Watchr.new(self)
 ```
 
-Then launch `watchr` as usual (probably `bundle exec watchr`).
-If you are using RspecOrgFormatter, see the *Advanced* section of this document.
+Then launch `watchr` as usual (probably `bundle exec watchr`).  If you
+are using RspecOrgFormatter, see the *Advanced* section of this
+document.
 
 ### Instructions
 
-The normal behavior is similar to `autotest --fast-start --no-full-after-failed` 
-but gives the user a bit more control over execution. By hitting CTRL+C (or CMD+. on OSX)
-you get the following prompt:
+The normal behavior is similar to `autotest --fast-start
+--no-full-after-failed` but gives the user a bit more control over
+execution. By hitting CTRL+C (or CMD+. on OSX) you get the following
+prompt:
 
     ^C (Interrupted with CTRL+C)
     --- What to do now? (q=quit, a=all-specs, r=reload): 
@@ -106,3 +116,7 @@ To use it with the [RSpec Org Formatter][RSpecOrgFormatter], the
 
 
 Copyright (c) 2012 Alessandro Piras, 2011 Elia Schito, released under the MIT license
+
+[enotify]:https://github.com/laynor/enotify
+[RSpecOrgFormatter]:https://github.com/laynor/rspec_org_formatter
+[spectator]:https://github.com/elia/spectator
