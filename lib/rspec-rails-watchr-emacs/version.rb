@@ -1,7 +1,7 @@
 module Rspec
   module Rails
     module Watchr
-      VERSION = '1.0.2'
+      VERSION = '0.9.0'
     end
   end
 end
