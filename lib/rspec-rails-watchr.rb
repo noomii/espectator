@@ -1,4 +1,4 @@
-# coding: utf-8
+# coding: utf-8)
 
 require 'rspec-rails-watchr/version'
 require 'term/ansicolor'
@@ -6,6 +6,7 @@ require 'term/ansicolor'
 class SpecWatchr
   String.send :include, Term::ANSIColor
 
+  
   module CommandLine
     def terminal_columns
       cols = `stty -a`.scan(/ (\d+) columns/).flatten.first
@@ -14,15 +15,137 @@ class SpecWatchr
 
     def run cmd
       puts "=== running: #{cmd} ".ljust(terminal_columns, '=').cyan
-      success = system cmd
+      results = `#{cmd}`
+      success = $?.success?
+      puts "    " + results.split("\n")[@error_count_line].strip.send(success ? :green : :red)
       puts "===".ljust(terminal_columns, '=').cyan
-      success
+      # {:success => success, :results => message}
+      results
     end
 
     def clear!
       system 'clear'
     end
   end
+
+  module EmacsConnection
+    def alist (hash)
+      hash.merge(:magic_convert_to => :alist)
+    end
+    def flatten (hash)
+      hash.merge(:magic_convert_to => :flat)
+    end
+    def keyword (symbol)
+      :"#{symbol.inspect}"
+    end
+    def elispify_symbol(symbol)
+      symbol.to_s.gsub(/_/,'-') 
+    end
+    def hash_to_esexp (hash)
+      h = hash.clone
+      h.delete(:magic_convert_to)
+      case hash[:magic_convert_to]
+      when :alist
+        res = h.map { |k, v| "(#{object_to_esexp k} . #{object_to_esexp v})" }
+        "(#{res.join(' ')})"
+      when :flat
+        res = h.map { |k, v| "#{object_to_esexp k} #{object_to_esexp v}" }
+        "(#{res.join(' ')})"
+      else
+        if hash.keys.reduce(true) { |base, el| base && Symbol === el }
+          res = h.map { |k, v| "#{object_to_esexp keyword(k)} #{object_to_esexp v}" }
+          "(#{res.join(' ')})"
+        else
+          h[:magic_convert_to] = :alist
+          hash_to_esexp h
+        end
+      end
+    end
+    def object_to_esexp (object)
+      case object
+      when String
+        object.inspect
+      when Array
+        res = object.map { |el| object_to_esexp(el) }
+        "(#{res.join(' ')})"
+      when Symbol
+        elispify_symbol(object)
+      when Hash
+        hash_to_esexp object
+      else
+        object.to_s
+      end
+    end
+    def esend (object)
+      msg = object_to_esexp object
+      @sock.puts("|#{msg.length}|#{msg}")
+      # @sock.print("|#{msg.length}|")
+      # sleep 2
+      # @sock.puts msg
+    end
+
+    def rspec_status(err_cnt)
+      if err_cnt[:errors] > 0
+        :failure
+      elsif err_cnt[:pending] > 0
+        :pending
+      else
+        :success
+      end
+    end
+
+    def extract_rspec_counts(results, line)
+      err_line = results.split("\n")[line]
+      err_regex = /^(\d*)\sexamples?,\s(\d*)\s(errors?|failures?)[^\d]*((\d*)\spending)?/
+      _, examples, errors, _, pending = (err_line.match err_regex).to_a
+      summ = { :examples => examples.to_i, :errors => errors.to_i, :pending => pending.to_i }
+      summ.merge(:status => rspec_status(summ))
+    end
+
+    def extract_rspec_summary(results)
+      case @custom_extract_summary_proc
+      when Proc
+        @custom_extract_summary_proc.call(results)
+      else
+        begin
+          extract_rspec_counts(results, @error_count_line)
+        rescue
+          puts "--- Error while matching error counts.".red
+          print "--- Summary line number: ".yellow
+          @error_count_line = STDIN.gets.to_i
+          extract_rspec_summary results
+        end
+      end
+    end
+
+    def format_help(summary)
+      h = "#{summary[:errors]} errors\n"
+      h << ("#{summary[:pending]} pending\n" if summary[:pending]>0).to_s
+      h << "\nmouse-1: switch to result buffer"
+    end
+
+    
+    def eregister
+      esend :register => @enotify_slot_id, :handler_fn => :enotify_rspec_result_message_handler
+    end
+
+      
+    
+    def esend_results(results)
+      summ = extract_rspec_summary(results)
+      status = summ[:status]
+      message = { :id => @enotify_slot_id,
+        :notification => {
+          :text => @notification_message[status],
+          :face => @notification_face[status],
+          :help => format_help(summ),
+          :mouse_1 => :enotify_rspec_mouse_1_handler},
+        :data => results,
+      }
+      esend message
+    end
+  end 
+        
 
   module Specs
     def notify message
@@ -40,10 +163,32 @@ class SpecWatchr
       @rspec_command ||= File.exist?('./.rspec') ? 'rspec' : 'spec'
     end
 
+    def rspec_send_results(results)
+      begin
+        print "--- Sending notification to #{@enotify_host}:#{@enotify_port}" \
+        " through #{@enotify_slot_id}... ".cyan
+        esend_results results 
+        puts "Success!".green
+      rescue
+        puts "Failed!".red
+        init_network
+        rspec_send_results results 
+      end
+    end
+
+    def check_if_bundle_needed
+      if `bundle exec #{rspec_command} -v` == `#{rspec_command} -v` 
+        @bundle = ""
+      else
+        @bundle = "bundle exec "
+      end
+    end
+
     def rspec options
       unless options.empty?
-        success = run("bundle exec #{rspec_command} #{options}")
-        notify( success ? '♥♥ SUCCESS :) ♥♥' : '♠♠ FAILED >:( ♠♠' )
+        results = run("#{@bundle}#{rspec_command} #{options}")
+        # notify( success ? '♥♥ SUCCESS :) ♥♥' : '♠♠ FAILED >:( ♠♠' )
+        rspec_send_results(results)
       end
     end
 
@@ -123,13 +268,86 @@ class SpecWatchr
   end
 
 
+
   include CommandLine
   include Specs
   include Control
+  include EmacsConnection
 
-  def initialize watchr, &block
-    @custom_matcher = block if block_given?
+  def blank_string?(string)
+    string =~ /\A\s*\n?\z/
+  end
+
+  def rescue_sock_error
+    print "--- Enter Enotify host [localhost:5000]: ".yellow
+    host_and_port = STDIN.gets.strip
+    if blank_string?(host_and_port)
+      @enotify_host, @enotify_port = ['localhost', @default_options[:enotify_port]]
+    else
+      @enotify_host, @enotify_port = host_and_port.split(/\s:\s/) 
+      @enotify_port = @enotify_port.to_i
+    end
+    init_network
+  end
+    
+  def init_network
+    begin
+      print "=== Connecting to emacs... ".cyan
+      @sock = TCPSocket.new(@enotify_host, @enotify_port)
+      eregister
+      puts "Success!".green
+    rescue
+      puts "Failed!".red
+      rescue_sock_error
+    end
+  end
+
+  def initialize watchr, options = {}
+    @default_options = {
+      :enotify_port => 5000,
+      :enotify_host => 'localhost',
+      :notification_message => {:failure => "F", :success => "S", :pending => "P"},
+      :notification_face => {
+        :failure => keyword(:failure),
+        :success => keyword(:success),
+        :pending => keyword(:warning)},
+      # custom_extract_summary_proc: takes the result text as argument
+      # and returns an hash of the form
+      # {:errors => #errors
+      #  :pending => #pending
+      #  :examples => #examples
+      #  :status => (:success|:failure|:pending) }
+      :custom_extract_summary_proc => nil, 
+      :error_count_line => -1,
+
+      # custom_matcher : takes two arguments: the path of the modified
+      # file (CHECK) and an array of spec files. Returns an array of
+      # matching spec files for the path given.
+      :custom_matcher => nil     }
+
+    options = @default_options.merge(options)
+    puts "========OPTIONS=========="
+    puts options
+    puts "========================="
+    @enotify_host = options[:enotify_host]
+    @enotify_port = options[:enotify_port]
+    @notification_message = options[:notification_message]
+    @notification_face = options[:notification_face]
+    @custom_extract_summary_proc = options[:custom_extract_summary_proc]
+    @error_count_line = options[:error_count_line]
+          
+    @custom_matcher = options[:custom_matcher]
+    
+    yield if block_given?
+    @enotify_slot_id = ((File.basename Dir.pwd).split('_').map { |s| s.capitalize }).join
+    check_if_bundle_needed
+    init_network
     @watchr = watchr
+
+
+    
+    
+    
 
     watchr.watch('^spec/(.*)_spec\.rb$')                     {|m| rspec_files specs_for(m[1])}
     watchr.watch('^(?:app|lib|script)/(.*)(?:\.rb|\.\w+|)$') {|m| rspec_files specs_for(m[1].gsub(/\.rb$/,''))}
