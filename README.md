@@ -23,9 +23,9 @@ Copy the emacs/enotify-espectator.el file in a directory in your
 load-path and add this line after the enotify configuration in your
 .emacs:
 
-----
+```lisp
 	(require 'enotify-espectator)
-----
+```
 
 Note that enotify uses the TCP port 5000 to listen to notification
 messages. If you specified a different port, refer to the ``Advanced''
