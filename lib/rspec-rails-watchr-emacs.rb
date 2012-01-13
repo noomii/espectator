@@ -2,6 +2,7 @@
 
 require 'rspec-rails-watchr-emacs/version'
 require 'term/ansicolor'
+require 'socket'
 
 class SpecWatchr
   String.send :include, Term::ANSIColor
