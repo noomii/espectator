@@ -59,6 +59,7 @@ prompt:
 
 ESpectator supports the following options (here reported with their
 default values):
+
 ```ruby
 	{ :enotify_port => 5000, # TCP port for the enotify connection
       :enotify_host => 'localhost', # host name for the enotify connection
@@ -110,6 +111,7 @@ An example of a custom matcher:
 
 To use it with the [RSpec Org Formatter][RSpecOrgFormatter], the 
 :error_count_line option should be set to -6:
+
 ```ruby
 	@specs_watchr ||= Rspec::Rails::Watchr.new(self, :error_count_line => -6)
 ```
