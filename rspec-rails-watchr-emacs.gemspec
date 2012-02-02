@@ -7,7 +7,7 @@ Gem::Specification.new do |s|
   s.version     = Rspec::Rails::Watchr::VERSION
   s.authors     = %w[Alessandro Piras]
   s.email       = %w[laynor@gmail.com]
-  s.homepage    = 'https://github.com/laynor/spectator'
+  s.homepage    = 'https://github.com/laynor/espectator'
   s.summary     = %q{Watches specs for a Rails (2 or 3) project - notifications via Emacs enotify}
   s.description = %q{Watches specs for a Rails (2 or 3) project - notifications via Emacs enotify. Fork of rspec-rails-watchr (spectator)}
   s.license     = 'MIT'
