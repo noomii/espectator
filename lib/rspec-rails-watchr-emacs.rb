@@ -1,4 +1,4 @@
-# coding: utf-8)
+# coding: utf-8
 
 require 'rspec-rails-watchr-emacs/version'
 require 'term/ansicolor'
@@ -207,9 +207,10 @@ class SpecWatchr
     def match_specs path, specs
       matched_specs = @custom_matcher.call(path, specs) if @custom_matcher
       matched_specs = default_rails_matcher(path, specs) if matched_specs.nil?
+      matched_specs
     end
   end
-
+  
   module Control
     def exit_watchr
       @exiting = true
@@ -343,7 +344,8 @@ class SpecWatchr
     
 
     watchr.watch('^spec/(.*)_spec\.rb$')                     {|m| rspec_files specs_for(m[1])}
-    watchr.watch('^(?:app|lib|script)/(.*)(?:\.rb|\.\w+|)$') {|m| rspec_files specs_for(m[1].gsub(/\.rb$/,''))}
+    #watchr.watch('^(?:app|lib|script)/(.*)(?:\.rb|\.\w+|)$') {|m| rspec_files specs_for(m[1].gsub(/\.rb$/,''))}
+    watchr.watch('^(?:app|lib|script)/(.*)(?:\.rb|\.\w+)$') {|m| rspec_files specs_for(m[1].gsub(/\.rb$/,''))}
 
     trap_int!
 
