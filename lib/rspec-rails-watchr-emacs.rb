@@ -122,7 +122,9 @@ class SpecWatchr
     end
 
     def format_help(summary)
-      h = "#{summary[:errors]} errors\n"
+      t = Time.now
+      h =  "#{t.year}-#{t.month}-#{t.day}\n#{t.hour}:#{t.min}:#{t.sec}: "
+      h << "#{summary[:errors]} errors\n"
       h << ("#{summary[:pending]} pending\n" if summary[:pending]>0).to_s
       h << "\nmouse-1: switch to result buffer"
     end
