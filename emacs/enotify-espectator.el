@@ -113,7 +113,7 @@ The default handler just writes the results in a buffer in org-mode.")
        (propertize summary 'face (enotify-espectator-alert-face info)))))
   
   (defun enotify-espectator-alert-log (info)
-    (let ((bname (format "Alerts - Espectator [%s]" (enotify-espectator-alert-id info))))
+    (let ((bname (format "*Alerts - Espectator [%s]*" (enotify-espectator-alert-id info))))
       (with-current-buffer
 	  (get-buffer-create bname)
 	(goto-char (point-max))
