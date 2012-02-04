@@ -51,6 +51,13 @@
 		 (const :tag "Low" low)
 		 (const :tag "Trivial" trivial)))
 
+(defcustom enotify-espectator-alert-use-separate-buffers nil
+  "whether enotify-espectator should use different alert log
+buffers for each project."
+  :group 'enotify-espectator
+  :type '(choice (const :tag "No" nil)
+		 (const :tag "Yes" t)))
+
 (defgroup enotify-espectator nil
   "Enotify plugin for espectator"
   :group 'enotify)
