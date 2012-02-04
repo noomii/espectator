@@ -81,6 +81,7 @@ The default handler just writes the results in a buffer in org-mode.")
 (defvar enotify-rspec-mouse-1-handler 'enotify-rspec-mouse-1-handler
   "Mouse-1 handler function. It takes an event parameter. See enotify README for details.")
 
+
 
 ;;;; Alert.el stuff
 (when (featurep 'alert)
@@ -104,6 +105,7 @@ The default handler just writes the results in a buffer in org-mode.")
 	   (face (enotify-face (plist-get notification :face)))
 	   (summary-text (nth 1 (split-string help-text "\n"))))
       summary-text))
+  
   
   (defun enotify-espectator-face (id)
     "Extracts the face used for the enotify notification sent by espectator"
