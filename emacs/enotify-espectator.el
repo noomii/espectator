@@ -36,6 +36,10 @@
 
 (require 'enotify)
 
+(defgroup enotify-espectator nil
+  "Enotify plugin for espectator"
+  :group 'enotify)
+
 (defcustom enotify-espectator-use-alert nil
   "whether enotify-espectator should use alert.el"
   :group 'enotify-espectator
@@ -51,9 +55,13 @@
 		 (const :tag "Low" low)
 		 (const :tag "Trivial" trivial)))
 
-(defgroup enotify-espectator nil
-  "Enotify plugin for espectator"
-  :group 'enotify)
+(defcustom enotify-espectator-alert-use-separate-log-buffers nil
+  "whether enotify-espectator should use different alert log
+buffers for each project."
+  :group 'enotify-espectator
+  :type '(choice (const :tag "No" nil)
+		 (const :tag "Yes" t)))
+
 
 (defcustom enotify-espectator-change-face-timeout nil
   "amount of seconds after which the notification face should be changed."
@@ -84,13 +92,44 @@ The default handler just writes the results in a buffer in org-mode.")
 
 
 ;;;; Alert.el stuff
+
 (when (featurep 'alert)
+  (defun enotify-espectator-alert-id (info)
+    (car (plist-get info :data)))
+  (defun enotify-espectator-alert-face (info)
+    (enotify-face (cdr (plist-get info :data))))
+  
+  (defun enotify-espectator-chomp (str)
+    "Chomp leading and tailing whitespace from STR."
+    (while (string-match "\\`\n+\\|^\\s-+\\|\\s-+$\\|\n+\\'"
+			 str)
+      (setq str (replace-match "" t t str)))
+    str) 
+  
+  (defun* enotify-espectator-colorized-summary (info &optional (with-timestamp t)) 
+    (let* ((s+t (plist-get info :message))
+	   (summary (if with-timestamp s+t (car (last (split-string s+t ":"))))))
+      (enotify-espectator-chomp
+       (propertize summary 'face (enotify-espectator-alert-face info)))))
+  
+  (defun enotify-espectator-alert-log (info)
+    (let ((bname (format "Alerts - Espectator [%s]" (enotify-espectator-alert-id info))))
+      (with-current-buffer
+	  (get-buffer-create bname)
+	(goto-char (point-max))
+	(insert (format-time-string "%H:%M %p - ")
+		(enotify-espectator-colorized-summary info nil)
+		?\n))))
+    
   (defun alert-espectator-notify (info)
     "alert.el notifier function for enotify-espectator."
+    (when enotify-espectator-alert-use-separate-log-buffers
+      (enotify-espectator-alert-log info))
     (message "%s: %s" 
-	     (alert-colorize-message (format "Enotify - espectator [%s]:" (car (plist-get info :data)))
+	     (alert-colorize-message (format "Enotify - espectator [%s]:"
+					     (enotify-espectator-alert-id info))
 				     (plist-get info :severity))
-	     (propertize (plist-get info :message) 'face (enotify-face (cdr (plist-get info :data))))))
+	     (enotify-espectator-colorized-summary info)))
   
   ;;; enotify-espectator alert style
   (alert-define-style 'enotify-espectator
@@ -138,11 +177,14 @@ The default handler just writes the results in a buffer in org-mode.")
 		    'enotify-change-notification-face
 		    id enotify-espectator-timeout-face))
   (when (and enotify-espectator-use-alert (featurep 'alert))
-    (alert (enotify-espectator-summary id)
-	   :title id
-	   :data (cons id (enotify-espectator-face id))
-	   :category 'enotify-espectator
-	   :severity enotify-espectator-alert-severity))
+    (let ((alert-log-messages (if enotify-espectator-alert-use-separate-log-buffers
+				  nil
+				alert-log-messages)))
+      (alert (enotify-espectator-summary id)
+	     :title id
+	     :data (cons id (enotify-espectator-face id))
+	     :category 'enotify-espectator
+	     :severity enotify-espectator-alert-severity)))
   (funcall enotify-rspec-handler id data))
 
 
