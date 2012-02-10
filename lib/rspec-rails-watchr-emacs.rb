@@ -225,9 +225,19 @@ class SpecWatchr
       abort("\n")
     end
 
+    def bundled?(gem)
+      `bundle show #{gem}`
+      $? == 0
+    end
+      
+      
     def reload!
       # puts ARGV.join(' ')
-      exec('bundle exec watchr')
+      if bundled? "watchr"
+        exec('bundle exec watchr ' + @cli_args.join(' '))
+      else
+        exec('watchr ' + @cli_args.join(' '))
+      end
     end
 
     def reload_file_list
@@ -321,7 +331,9 @@ class SpecWatchr
       # matching spec files for the path given.
       :custom_matcher => nil     }
 
+
     options = @default_options.merge(options)
+    @cli_args = ARGV.to_a
     puts "========OPTIONS=========="
     puts options
     puts "========================="
@@ -339,10 +351,6 @@ class SpecWatchr
     check_if_bundle_needed
     init_network
     @watchr = watchr
-
-
-    
-    
     
 
     watchr.watch('^spec/(.*)_spec\.rb$')                     {|m| rspec_files specs_for(m[1])}
