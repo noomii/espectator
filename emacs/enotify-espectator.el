@@ -43,7 +43,7 @@
 (defcustom enotify-espectator-use-alert nil
   "whether enotify-espectator should use alert.el"
   :group 'enotify-espectator
-  :type '(choice (const :tag "No" nil) (const :tag "Yes" t)))
+  :type 'boolean)
 
 (defcustom enotify-espectator-alert-severity 'trivial
   "severity for alert.el alerts"
@@ -59,8 +59,7 @@
   "whether enotify-espectator should use different alert log
 buffers for each project."
   :group 'enotify-espectator
-  :type '(choice (const :tag "No" nil)
-		 (const :tag "Yes" t)))
+  :type 'boolean)
 
 
 (defcustom enotify-espectator-change-face-timeout nil
