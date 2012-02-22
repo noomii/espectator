@@ -88,6 +88,19 @@ The default handler just writes the results in a buffer in org-mode.")
 (defvar enotify-rspec-mouse-1-handler 'enotify-rspec-mouse-1-handler
   "Mouse-1 handler function. It takes an event parameter. See enotify README for details.")
 
+(defcustom espectator-get-project-root-dir-function 'rinari-root
+  "Function used to get ruby project root."
+  :group 'enotify-espectator)
+
+(defcustom espectator-test-server-cmd "spork"
+  "Test server command - change this to bundle exec spork if you are using bundle.
+Change to nil if you don't want to use any test server."
+  :group 'enotify-espectator)
+
+(defcustom espectator-watchr-cmd "watchr"
+  "Command to run watchr - change this to bundle exec watchr if you are using bundle."
+  :group 'enotify-espectator)
+
 
 
 ;;;; Alert.el stuff
@@ -186,12 +199,99 @@ The default handler just writes the results in a buffer in org-mode.")
 	     :severity enotify-espectator-alert-severity)))
   (funcall enotify-rspec-handler id data))
 
-
 (defun enotify-rspec-mouse-1-handler (event)
   (interactive "e")
   (switch-to-buffer-other-window
    (enotify-rspec-result-buffer-name
     (enotify-event->slot-id event))))
+
+
+;;;; Rinari / Espectator stuff
+(defvar espectator-script " # -*-ruby-*-
+require 'rspec-rails-watchr-emacs'
+@specs_watchr ||= Rspec::Rails::Watchr.new(self,
+                                           ## uncomment the line below if you are using RspecOrgFormatter
+                                           # :error_count_line => -6,
+                                           ## uncomment to customize the notification messages that appear on the notification area
+                                           # :notification_message => {:failure => 'F', :success => 'S', :pending => 'P'},
+                                           ## uncomment to customize the message faces (underscores are changed to dashes)
+                                           # :notification_face => {
+                                           #   :failure => :my_failure_face, #will be `my-failure-face' on emacs
+                                           #   :success => :my_success_face,
+                                           #   :pending => :my_pending_face},
+                                           ## uncomment for custom matcher!
+                                           # :custom_matcher => lambda { |path, specs| puts 'Please fill me!' }
+                                           ## uncomment for custom summary extraction
+                                           # :custom_extract_summary_proc => lambda { |results| puts 'Please Fill me!' }
+                                           ## uncomment for custom enotify slot id (defaults to the base directory name of
+                                           ## your application rendered in CamelCase
+                                           # :slot_id => 'My slot id'
+                                           )
+")
+
+
+(defun espectator-generate-script ()
+  "Creates an espectator script in the project root directory"
+  (let ((dir (funcall espectator-get-project-root-dir-function)))
+    (when dir
+      (with-temp-file (concat dir "/.espectator")
+	(insert espectator-script)))))
+
+(defun espectator-script ()
+  (interactive)
+  (find-file (concat (funcall espectator-get-project-root-dir-function) "/.espectator")))
+
+(defun espectator-run-in-shell (cmd &optional dir bufname)
+  (let* ((default-directory (or dir default-directory))
+	 (shproc (shell bufname)))
+    (comint-send-string shproc (concat cmd "\n"))))
+
+(defun espectator-app-name ()
+  (let ((root-dir (funcall espectator-get-project-root-dir-function)))
+    (when root-dir
+      (apply 'concat
+	     (mapcar 'capitalize
+		     (split-string (file-name-nondirectory
+				    (directory-file-name
+				     root-dir))
+				   "[^a-zA-Z0-9]"))))))
+
+(defun espectator ()
+  (interactive)
+  (let ((project-root (funcall espectator-get-project-root-dir-function))
+	(app-name (espectator-app-name)))
+    (espectator-run-in-shell espectator-test-server-cmd
+			     project-root
+			     (concat "*Spork - " app-name  "*"))
+    (espectator-run-in-shell (concat espectator-watchr-cmd " .espectator")
+			     project-root
+			     (concat "*Espectator - " app-name  "*"))))
+			   
+;;; Some utilities
+
+(defun espectator-find-espectator-1 (pattern)
+  (let ((bnames  (mapcar 'buffer-name (buffer-list)))
+	(app-name (espectator-app-name)))
+    (when app-name
+      (find-if (lambda (el) (string-match (format "%s.*%s" pattern app-name) el))
+	       bnames))))
+(defun espectator-maybe-switch-to-buffer (buf &optional msg)
+  (if buf
+    (switch-to-buffer buf)
+    (message "Could not open buffer. %s" (or msg  "Did you run espectator? Try M-x espectator RET."))))
+
+(defun espectator-find-espectator ()
+  (interactive)
+  (espectator-maybe-switch-to-buffer (espectator-find-espectator-1 "*Espectator")))
+
+(defun espectator-find-espectator-results ()
+  (interactive)
+  (espectator-maybe-switch-to-buffer (espectator-find-espectator-1 "*RSpec Results")
+				     "Either espectator is not running or no tests have been executed yet."))
+
+(defun espectator-find-espectator-spork ()
+  (interactive)
+  (espectator-maybe-switch-to-buffer (espectator-find-espectator-1 "*Spork")))
 
 (provide 'enotify-espectator)
 ;;; enotify-espectator.el ends here
