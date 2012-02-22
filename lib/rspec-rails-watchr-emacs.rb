@@ -124,8 +124,12 @@ class SpecWatchr
     def format_help(summary)
       t = Time.now
       h =  "#{t.year}-#{t.month}-#{t.day}\n#{t.hour}:#{t.min}:#{t.sec}: "
-      h << "#{summary[:errors]} errors\n"
-      h << ("#{summary[:pending]} pending\n" if summary[:pending]>0).to_s
+      h << "#{summary[:examples]} examples, #{summary[:errors]} errors"
+      if (summary[:pending] > 0)
+        h << ", #{summary[:pending]} pending.\n"
+      else
+        h << ".\n"
+      end
       h << "\nmouse-1: switch to result buffer"
     end
 
@@ -145,7 +149,7 @@ class SpecWatchr
           :face => @notification_face[status],
           :help => format_help(summ),
           :mouse_1 => :enotify_rspec_mouse_1_handler},
-        :data => results,
+        :data => results
       }
       esend message
     end
@@ -347,15 +351,16 @@ class SpecWatchr
     @custom_matcher = options[:custom_matcher]
     
     yield if block_given?
-    @enotify_slot_id = ((File.basename Dir.pwd).split('_').map { |s| s.capitalize }).join
+    @enotify_slot_id = options[:slot_id] || ((File.basename Dir.pwd).split('_').map { |s| s.capitalize }).join
     check_if_bundle_needed
     init_network
     @watchr = watchr
     
 
+    watchr.watch('config/routes.rb')                         {|m| rspec_files specs_for(m[1])}
     watchr.watch('^spec/(.*)_spec\.rb$')                     {|m| rspec_files specs_for(m[1])}
+    watchr.watch('^(?:app|lib|script)/(.*)(?:\.rb|\.\w+)$')  {|m| rspec_files specs_for(m[1].gsub(/\.rb$/,''))}
     #watchr.watch('^(?:app|lib|script)/(.*)(?:\.rb|\.\w+|)$') {|m| rspec_files specs_for(m[1].gsub(/\.rb$/,''))}
-    watchr.watch('^(?:app|lib|script)/(.*)(?:\.rb|\.\w+)$') {|m| rspec_files specs_for(m[1].gsub(/\.rb$/,''))}
 
     trap_int!
 
