@@ -19,7 +19,8 @@ class SpecWatchr
       results = `#{cmd}`
       success = $?.success?
       unless @custom_extract_summary_proc
-        puts "    " + results.split("\n")[@error_count_line].strip.send(success ? :green : :red)
+        err_regex = /^(\d*)\sexamples?,\s(\d*)\s(errors?|failures?)[^\d]*((\d*)\spending)?$/
+        puts "    " + results.match(err_regex)[0].send(success ? :green : :red)
       end
       puts "===".ljust(terminal_columns, '=').cyan
       # {:success => success, :results => message}
@@ -98,9 +99,8 @@ class SpecWatchr
     end
 
     def extract_rspec_counts(results, line)
-      err_line = results.split("\n")[line]
-      err_regex = /^(\d*)\sexamples?,\s(\d*)\s(errors?|failures?)[^\d]*((\d*)\spending)?/
-      _, examples, errors, _, pending = (err_line.match err_regex).to_a
+      err_regex = /^(\d*)\sexamples?,\s(\d*)\s(errors?|failures?)[^\d]*((\d*)\spending)?$/
+      _, examples, errors, _, pending = (results.match err_regex).to_a
       summ = { :examples => examples.to_i, :errors => errors.to_i, :pending => pending.to_i }
       summ.merge(:status => rspec_status(summ))
     end
