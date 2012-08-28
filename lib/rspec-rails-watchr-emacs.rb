@@ -159,7 +159,8 @@ class SpecWatchr
   module Specs
 
     def rspec_command
-      @rspec_command ||= File.exist?('./.rspec') ? 'rspec' : 'spec'
+      rspec_defined = ENV['PATH'].split(':').destect {|folder| File.exists?(folder+'/rspec')}
+      @rspec_command ||= rspec_defined ? 'rspec' : 'spec'
     end
 
     def rspec_send_results(results)
